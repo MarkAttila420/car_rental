@@ -3,6 +3,7 @@
       layout:decorate="~{layout}">
 <head>
     <title>Home - Elérhető autók</title>
+    <link rel="stylesheet" th:href="@{/css/dateRangePicker.css}">
 </head>
 <body>
 <div layout:fragment="content">
@@ -18,22 +19,23 @@
                         <span id="dateRangeDisplay">Foglalás időtartama</span>
                     </div>
                     
-                    <div id="dateRangePicker" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <button type="button" id="prevMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
-                                &#8249;
-                            </button>
-                            <div style="display: flex; gap: 20px; flex: 1;">
-                                <div id="calendar1"></div>
-                                <div id="calendar2"></div>
+                        <div id="dateRangePicker" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 4px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button type="button" id="prevMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8249;
+                                </button>
+                                <div style="display: flex; gap: 20px; flex: 1;">
+                                    <div id="calendar1"></div>
+                                    <div id="calendar2"></div>
+                                </div>
+                                <button type="button" id="nextMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8250;
+                                </button>
                             </div>
-                            <button type="button" id="nextMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
-                                &#8250;
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <input type="hidden" 
+                            <div class="date-picker-footer">
+                                <button type="button" id="confirmDateRange" class="date-picker-confirm" disabled>Keresés</button>
+                            </div>
+                        </div>                    <input type="hidden" 
                            id="startDate" 
                            name="startDate" 
                            th:value="${startDate != null ? #temporals.format(startDate, 'yyyy-MM-dd') : ''}">
@@ -42,7 +44,6 @@
                            name="endDate" 
                            th:value="${endDate != null ? #temporals.format(endDate, 'yyyy-MM-dd') : ''}">
                 </div>
-                <button type="submit" class="search-button">Keresés</button>
                 <a href="/" class="clear-filters-link">Szűrők törlése</a>
             </form>
         </div>
@@ -76,62 +77,6 @@
 
 <th:block layout:fragment="extra-css">
     <style>
-        .calendar {
-            min-width: 280px;
-        }
-        
-        .calendar-header {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-        }
-        
-        .calendar-day-header {
-            text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 8px 0;
-            color: #666;
-        }
-        
-        .calendar-day {
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .calendar-day:hover:not(.disabled):not(.empty) {
-            background-color: #e3f2fd;
-        }
-        
-        .calendar-day.disabled {
-            color: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .calendar-day.empty {
-            cursor: default;
-        }
-        
-        .calendar-day.selected-start,
-        .calendar-day.selected-end {
-            background-color: #2196F3;
-            color: white;
-        }
-        
-        .calendar-day.in-range {
-            background-color: #e0e0e0;
-        }
-        
         /* Filter Bar Styles */
         .filter-bar {
             background: white;
@@ -146,28 +91,6 @@
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
-        }
-        
-        .date-picker-trigger {
-            display: flex;
-            align-items: center;
-            border: 1px solid #ddd;
-            padding: 10px 16px;
-            cursor: pointer;
-            border-radius: 6px;
-            background: white;
-            transition: all 0.2s;
-            min-width: 240px;
-        }
-        
-        .date-picker-trigger:hover {
-            border-color: #2196F3;
-            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-        }
-        
-        .date-picker-trigger span {
-            color: #333;
-            font-size: 14px;
         }
         
         .search-button {
@@ -306,200 +229,28 @@
 </th:block>
 
 <th:block layout:fragment="extra-js">
+    <script th:src="@{/js/dateRangePicker.js}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            let startDate = null;
-            let endDate = null;
-            let isSelectingRange = false;
-            let currentMonthOffset = 0;
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Initialize with existing values if any
-            const initialStart = document.getElementById('startDate').value;
-            const initialEnd = document.getElementById('endDate').value;
-            if (initialStart) {
-                startDate = new Date(initialStart);
-                startDate.setHours(0, 0, 0, 0);
-            }
-            if (initialEnd) {
-                endDate = new Date(initialEnd);
-                endDate.setHours(0, 0, 0, 0);
-            }
-            
-            function generateCalendar(containerId, date) {
-                const year = date.getFullYear();
-                const month = date.getMonth();
-                
-                const firstDay = new Date(year, month, 1);
-                const lastDay = new Date(year, month + 1, 0);
-                const startingDayOfWeek = firstDay.getDay();
-                
-                const monthNames = ["January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"];
-                
-                let html = '<div class="calendar">';
-                html += '<div class="calendar-header">' + monthNames[month] + ' ' + year + '</div>';
-                html += '<div class="calendar-grid">';
-                
-                // Day headers
-                const dayHeaders = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-                dayHeaders.forEach(day => {
-                    html += '<div class="calendar-day-header">' + day + '</div>';
-                });
-                
-                // Empty cells before first day
-                for (let i = 0; i < startingDayOfWeek; i++) {
-                    html += '<div class="calendar-day empty"></div>';
-                }
-                
-                // Days of month
-                for (let day = 1; day <= lastDay.getDate(); day++) {
-                    const currentDate = new Date(year, month, day);
-                    currentDate.setHours(0, 0, 0, 0);
-                    let classes = 'calendar-day';
-                    
-                    if (currentDate < today) {
-                        classes += ' disabled';
-                    }
-                    
-                    // Check if this day matches start or end date
-                    if (startDate && currentDate.getTime() === startDate.getTime()) {
-                        classes += ' selected-start';
-                    }
-                    if (endDate && currentDate.getTime() === endDate.getTime()) {
-                        classes += ' selected-end';
-                    }
-                    // Check if this day is in range
-                    if (startDate && endDate && currentDate > startDate && currentDate < endDate) {
-                        classes += ' in-range';
-                    }
-                    
-                    html += '<div class="' + classes + '" data-date="' + currentDate.toISOString() + '">' + day + '</div>';
-                }
-                
-                html += '</div></div>';
-                
-                document.getElementById(containerId).innerHTML = html;
-            }
-            
-            function updateDisplay() {
-                const displayEl = document.getElementById('dateRangeDisplay');
-                const startInput = document.getElementById('startDate');
-                const endInput = document.getElementById('endDate');
-                
-                if (startDate && endDate) {
-                    const options = { month: 'short', day: 'numeric' };
-                    const startStr = startDate.toLocaleDateString('en-US', options);
-                    const endStr = endDate.toLocaleDateString('en-US', options);
-                    displayEl.textContent = startStr + ' - ' + endStr;
-                    
-                    startInput.value = formatDate(startDate);
-                    endInput.value = formatDate(endDate);
-                } else if (startDate) {
-                    const options = { month: 'short', day: 'numeric' };
-                    displayEl.textContent = startDate.toLocaleDateString('en-US', options) + ' - ...';
-                } else {
-                    displayEl.textContent = 'Dátum kiválasztása';
-                    startInput.value = '';
-                    endInput.value = '';
-                }
-            }
-            
-            function formatDate(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return year + '-' + month + '-' + day;
-            }
-            
-            function renderCalendars() {
-                const firstMonth = new Date(today.getFullYear(), today.getMonth() + currentMonthOffset, 1);
-                const secondMonth = new Date(today.getFullYear(), today.getMonth() + currentMonthOffset + 1, 1);
-                
-                generateCalendar('calendar1', firstMonth);
-                generateCalendar('calendar2', secondMonth);
-                
-                // Disable prev button if we're at current month
-                document.getElementById('prevMonth').disabled = currentMonthOffset <= 0;
-            }
-            
-            // Toggle date picker
-            document.getElementById('dateRangeTrigger').addEventListener('click', function(e) {
-                e.stopPropagation();
-                const picker = document.getElementById('dateRangePicker');
-                if (picker.style.display === 'block') {
-                    picker.style.display = 'none';
-                } else {
-                    currentMonthOffset = 0; // Reset to current month when opening
-                    renderCalendars();
-                    picker.style.display = 'block';
+            // Initialize the date range picker
+            const picker = new DateRangePicker({
+                triggerElementId: 'dateRangeTrigger',
+                startDateInputId: 'startDate',
+                endDateInputId: 'endDate',
+                displayElementId: 'dateRangeDisplay',
+                pickerContainerId: 'dateRangePicker',
+                calendar1Id: 'calendar1',
+                calendar2Id: 'calendar2',
+                prevMonthButtonId: 'prevMonth',
+                nextMonthButtonId: 'nextMonth',
+                confirmButtonId: 'confirmDateRange',
+                defaultDisplayText: 'Foglalás időtartama',
+                onConfirm: function(startDate, endDate) {
+                    // Update booking links and submit form
+                    updateBookingLinks();
+                    document.getElementById('searchForm').submit();
                 }
             });
-            
-            // Month navigation
-            document.getElementById('prevMonth').addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (currentMonthOffset > 0) {
-                    currentMonthOffset--;
-                    renderCalendars();
-                }
-            });
-            
-            document.getElementById('nextMonth').addEventListener('click', function(e) {
-                e.stopPropagation();
-                currentMonthOffset++;
-                renderCalendars();
-            });
-            
-            // Prevent picker from closing when clicking inside it
-            document.getElementById('dateRangePicker').addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-            
-            // Handle date selection
-            document.getElementById('dateRangePicker').addEventListener('click', function(e) {
-                if (e.target.classList.contains('calendar-day') && 
-                    !e.target.classList.contains('disabled') && 
-                    !e.target.classList.contains('empty')) {
-                    
-                    const dateStr = e.target.getAttribute('data-date');
-                    const clickedDate = new Date(dateStr);
-                    clickedDate.setHours(0, 0, 0, 0);
-                    
-                    if (!startDate || (startDate && endDate)) {
-                        // Start new selection
-                        startDate = clickedDate;
-                        endDate = null;
-                        isSelectingRange = true;
-                    } else if (startDate && !endDate) {
-                        // Complete the range
-                        if (clickedDate < startDate) {
-                            endDate = startDate;
-                            startDate = clickedDate;
-                        } else {
-                            endDate = clickedDate;
-                        }
-                        isSelectingRange = false;
-                    }
-                    
-                    updateDisplay();
-                    renderCalendars();
-                }
-            });
-            
-            // Close picker when clicking outside
-            document.addEventListener('click', function(e) {
-                const trigger = document.getElementById('dateRangeTrigger');
-                const picker = document.getElementById('dateRangePicker');
-                if (!trigger.contains(e.target) && !picker.contains(e.target)) {
-                    picker.style.display = 'none';
-                }
-            });
-            
-            // Initialize display
-            updateDisplay();
             
             // Update booking links with date range
             function updateBookingLinks() {
@@ -527,30 +278,6 @@
             
             // Initial update
             updateBookingLinks();
-        });
-    </script>
-</th:block>
-
-<th:block layout:fragment="extra-js">
-    <script th:inline="javascript">
-        $(document).ready(function() {
-            const today = new Date();
-            
-            const startDatePicker = flatpickr("#startDate", {
-                dateFormat: "Y-m-d",
-                minDate: today,
-                onChange: function(selectedDates, dateStr, instance) {
-                    endDatePicker.set('minDate', dateStr);
-                }
-            });
-            
-            const endDatePicker = flatpickr("#endDate", {
-                dateFormat: "Y-m-d",
-                minDate: today,
-                onChange: function(selectedDates, dateStr, instance) {
-                    startDatePicker.set('maxDate', dateStr);
-                }
-            });
         });
     </script>
 </th:block>
