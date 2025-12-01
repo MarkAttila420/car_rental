@@ -24,4 +24,11 @@ interface BookingRepository : JpaRepository<Booking, Long> {
         @Param("startDate") startDate: LocalDate,
         @Param("endDate") endDate: LocalDate
     ): List<Booking>
+    
+    @Query("""
+        SELECT b FROM Booking b 
+        WHERE b.car.id = :carId 
+        AND b.bookingStatus != 'CANCELLED'
+    """)
+    fun findActiveBookingsByCarId(@Param("carId") carId: Long): List<Booking>
 }

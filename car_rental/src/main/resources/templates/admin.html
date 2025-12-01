@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Admin Felület</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Admin Felület</h1>
+        
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div class="admin-card">
+            <h2 class="mb-0" style="padding: 20px;">Foglalások kezelése</h2>
+            <div class="admin-card-body">
+                <div th:if="${#lists.isEmpty(bookings)}" class="no-bookings">
+                    Nincsenek foglalások.
+                </div>
+                
+                <div th:if="${!#lists.isEmpty(bookings)}" class="table-container">
+                    <table class="bookings-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Név</th>
+                                <th>Email</th>
+                                <th>Cím</th>
+                                <th>Telefonszám</th>
+                                <th>Kezdő dátum</th>
+                                <th>Vége dátum</th>
+                                <th>Napok száma</th>
+                                <th>Teljes összeg</th>
+                                <th>Autó ID</th>
+                                <th>Státusz</th>
+                                <th>Művelet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="booking : ${bookings}">
+                                <td th:text="${booking.id}">1</td>
+                                <td th:text="${booking.customerName}">John Doe</td>
+                                <td th:text="${booking.customerEmail}">john@example.com</td>
+                                <td th:text="${booking.customerAddress}">123 Main St</td>
+                                <td th:text="${booking.customerPhone}">+36301234567</td>
+                                <td th:text="${#temporals.format(booking.startDate, 'yyyy-MM-dd')}">2025-01-01</td>
+                                <td th:text="${#temporals.format(booking.endDate, 'yyyy-MM-dd')}">2025-01-05</td>
+                                <td th:text="${booking.numberOfDays}">5</td>
+                                <td th:text="${#numbers.formatDecimal(booking.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' Ft'">50000 Ft</td>
+                                <td th:text="${booking.car.id}">1</td>
+                                <td>
+                                    <form th:action="@{/admin/booking/{id}/status(id=${booking.id})}" method="post" class="status-form">
+                                        <select name="status" class="status-select" th:data-current="${booking.bookingStatus}">
+                                            <option th:each="status : ${bookingStatuses}" 
+                                                    th:value="${status}" 
+                                                    th:text="${status}"
+                                                    th:selected="${status == booking.bookingStatus}">
+                                                PENDING
+                                            </option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form th:action="@{/admin/booking/{id}/delete(id=${booking.id})}" method="post" class="delete-form">
+                                        <button type="submit" class="btn-delete" onclick="return confirm('Biztosan törölni szeretnéd ezt a foglalást?');">
+                                            Törlés
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <hr class="section-separator">
+        <div class="admin-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; border-bottom: 1px solid #e9ecef;">
+                <h2 class="mb-0">Autók kezelése</h2>
+                <button type="button" class="btn-add-car" onclick="openAddCarModal()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 6px;">
+                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    </svg>
+                    Új autó hozzáadása
+                </button>
+            </div>
+            <div class="admin-card-body">
+                <div th:if="${#lists.isEmpty(cars)}" class="no-cars">
+                    Nincsenek autók.
+                </div>
+                
+                <div th:if="${!#lists.isEmpty(cars)}" class="cars-container">
+                    <div th:each="car : ${cars}" class="car-card">
+                        <form th:action="@{/admin/car/{id}/update(id=${car.id})}" method="post" enctype="multipart/form-data" class="car-form">
+                            <div class="car-card-content">
+                                <div class="car-image-column">
+                                    <div class="image-edit-wrapper">
+                                        <img th:if="${car.imagePath != null}" 
+                                             th:src="@{${car.imagePath}}" 
+                                             th:alt="${car.brand + ' ' + car.model}"
+                                             class="car-edit-image">
+                                        <div th:if="${car.imagePath == null}" class="no-image-placeholder">
+                                            <svg width="80" height="80" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                                            </svg>
+                                            <p>Nincs kép</p>
+                                        </div>
+                                        <div class="image-edit-overlay" th:onclick="'document.getElementById(\'carImageInput_' + ${car.id} + '\').click()'">
+                                            <svg width="40" height="40" fill="white" viewBox="0 0 16 16">
+                                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                                            </svg>
+                                            <p style="color: white; margin-top: 8px; font-size: 14px; font-weight: 600;">Kép szerkesztése</p>
+                                        </div>
+                                        <input type="file" 
+                                               name="image"
+                                               th:id="'carImageInput_' + ${car.id}"
+                                               class="car-image-input" 
+                                               accept="image/*"
+                                               th:onchange="'previewCarImage(this, ' + ${car.id} + ')'"
+                                               style="display: none;">
+                                    </div>
+                                </div>
+                                
+                                <div class="car-details-column">
+                                    <div class="form-group">
+                                        <label class="form-label">Márka:</label>
+                                        <input type="text" 
+                                               name="brand" 
+                                               th:value="${car.brand}" 
+                                               class="form-control" 
+                                               required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Modell:</label>
+                                        <input type="text" 
+                                               name="model" 
+                                               th:value="${car.model}" 
+                                               class="form-control" 
+                                               required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">Napi díj (Ft):</label>
+                                        <input type="number" 
+                                               name="dailyRate" 
+                                               th:value="${car.dailyRate}" 
+                                               class="form-control" 
+                                               step="100"
+                                               min="0"
+                                               required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="toggle-label">
+                                            <span class="toggle-text">Aktív:</span>
+                                            <input type="checkbox" 
+                                                   name="active" 
+                                                   th:checked="${car.active}" 
+                                                   class="toggle-checkbox"
+                                                   value="true">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn-save">Mentés</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Car Modal -->
+    <div id="addCarModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Új autó hozzáadása</h3>
+                <button type="button" class="modal-close" onclick="closeAddCarModal()">&times;</button>
+            </div>
+            <form id="addCarForm" th:action="@{/admin/car/add}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Márka: *</label>
+                        <input type="text" name="brand" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Modell: *</label>
+                        <input type="text" name="model" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Napi díj (Ft): *</label>
+                        <input type="number" name="dailyRate" class="form-control" step="100" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Kép feltöltése: *</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" name="image" id="carImageInput" class="file-input" accept="image/*" required>
+                            <label for="carImageInput" class="file-upload-label">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                </svg>
+                                <span class="file-name">Válasszon képet...</span>
+                            </label>
+                        </div>
+                        <div id="imagePreview" class="image-preview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span class="toggle-text">Aktív:</span>
+                            <input type="checkbox" name="active" class="toggle-checkbox" value="true" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeAddCarModal()">Mégse</button>
+                    <button type="submit" class="btn-submit">Hozzáadás</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="extra-css">
+    <style>
+        .admin-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+
+        
+        .admin-card-body {
+            padding: 0;
+        }
+        
+        .no-bookings {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        .bookings-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1400px;
+        }
+        
+        .bookings-table thead {
+            background: #f8f9fa;
+        }
+        
+        .bookings-table th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .bookings-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            color: #495057;
+        }
+        
+        .bookings-table tbody tr {
+            transition: background-color 0.2s;
+        }
+        
+        .bookings-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-form {
+            margin: 0;
+        }
+        
+        .status-select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            background: white;
+            color: #495057;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+        
+        .status-select:hover {
+            border-color: #2196F3;
+        }
+        
+        .status-select:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        .delete-form {
+            margin: 0;
+        }
+        
+        .btn-delete {
+            padding: 6px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-delete:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-delete:active {
+            transform: translateY(0);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+        }
+        
+        /* Custom scrollbar for table container */
+        .table-container::-webkit-scrollbar {
+            height: 10px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Section Separator */
+        .section-separator {
+            margin: 40px 0;
+            border: 0;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        /* Car Management Styles */
+        .cars-container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .no-cars {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .car-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .car-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .car-form {
+            width: 100%;
+        }
+        
+        .car-card-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 0;
+        }
+        
+        .car-image-column {
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 225px;
+            position: relative;
+        }
+        
+        .image-edit-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .car-edit-image {
+            width: 100%;
+            max-height: 225px;
+            object-fit: contain;
+        }
+        
+        .image-edit-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            cursor: pointer;
+        }
+        
+        .image-edit-wrapper:hover .image-edit-overlay {
+            opacity: 1;
+        }
+        
+        .no-image-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            padding: 20px;
+        }
+        
+        .no-image-placeholder p {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .car-details-column {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .car-details-column .form-group {
+            margin-bottom: 0;
+        }
+        
+        .car-details-column .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 14px;
+        }
+        
+        .car-details-column .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .car-details-column .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        /* Toggle Switch Styles */
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .toggle-text {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .toggle-label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .toggle-checkbox {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+            background-color: #ccc;
+            border-radius: 26px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+        
+        .toggle-slider:before {
+            content: "";
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-checkbox:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+        
+        .toggle-checkbox:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        
+        .toggle-checkbox:focus + .toggle-slider {
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        /* Save Button */
+        .btn-save {
+            padding: 10px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-save:hover {
+            background: #1976D2;
+        }
+        
+        .car-details-column .form-actions {
+            margin-top: 10px;
+        }
+        
+        /* Responsive adjustments for car cards */
+        @media (max-width: 768px) {
+            .car-card-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .car-image-column {
+                height: 250px;
+            }
+        }
+        
+        /* Add Car Button */
+        .btn-add-car {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .btn-add-car:hover {
+            background: #1976D2;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .modal-body .form-group {
+            margin-bottom: 0;
+        }
+        
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .btn-cancel {
+            padding: 10px 24px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        
+        .btn-submit {
+            padding: 10px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-submit:hover {
+            background: #1976D2;
+        }
+        
+        /* File Upload Styles */
+        .file-upload-wrapper {
+            position: relative;
+        }
+        
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-label:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .file-upload-label svg {
+            color: #667eea;
+        }
+        
+        .file-name {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .image-preview {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .image-preview.show {
+            display: block;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</th:block>
+
+<th:block layout:fragment="extra-js">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-submit status changes
+            const statusSelects = document.querySelectorAll('.status-select');
+            
+            statusSelects.forEach(select => {
+                const currentStatus = select.dataset.current;
+                
+                select.addEventListener('change', function() {
+                    const newStatus = this.value;
+                    
+                    if (newStatus !== currentStatus) {
+                        if (confirm('Biztosan módosítani szeretnéd a foglalás státuszát?')) {
+                            this.closest('form').submit();
+                        } else {
+                            // Reset to original value if cancelled
+                            this.value = currentStatus;
+                        }
+                    }
+                });
+            });
+            
+            // Handle toggle checkboxes - add hidden input to handle unchecked state
+            const carForms = document.querySelectorAll('.car-form');
+            carForms.forEach(form => {
+                const checkbox = form.querySelector('.toggle-checkbox');
+                
+                form.addEventListener('submit', function(e) {
+                    // Remove any existing hidden input
+                    const existingHidden = form.querySelector('input[name="active"][type="hidden"]');
+                    if (existingHidden) {
+                        existingHidden.remove();
+                    }
+                    
+                    // If checkbox is unchecked, add hidden input with false value
+                    if (!checkbox.checked) {
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'active';
+                        hiddenInput.value = 'false';
+                        form.appendChild(hiddenInput);
+                        checkbox.disabled = true;
+                    }
+                    
+                    // Handle image input - disable if no file selected
+                    const fileInput = form.querySelector('.car-image-input');
+                    if (fileInput && fileInput.files.length === 0) {
+                        fileInput.disabled = true;
+                    }
+                });
+            });
+            
+            // File upload preview for add car modal
+            const fileInput = document.getElementById('carImageInput');
+            const fileLabel = fileInput?.nextElementSibling;
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Update label text
+                        const fileName = fileLabel.querySelector('.file-name');
+                        if (fileName) {
+                            fileName.textContent = file.name;
+                        }
+                        
+                        // Show preview
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            imagePreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
+                            imagePreview.classList.add('show');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+
+        });
+        
+        // Function to preview car image
+        function previewCarImage(input, carId) {
+            const file = input.files[0];
+            if (file) {
+                const wrapper = input.closest('.image-edit-wrapper');
+                const imgElement = wrapper.querySelector('.car-edit-image');
+                const placeholder = wrapper.querySelector('.no-image-placeholder');
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    if (imgElement) {
+                        imgElement.src = event.target.result;
+                    } else if (placeholder) {
+                        // Replace placeholder with image
+                        placeholder.outerHTML = '<img src="' + event.target.result + '" alt="Preview" class="car-edit-image">';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Modal functions
+        function openAddCarModal() {
+            const modal = document.getElementById('addCarModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeAddCarModal() {
+            const modal = document.getElementById('addCarModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+            
+            // Reset form
+            const form = document.getElementById('addCarForm');
+            form.reset();
+            
+            // Reset file label
+            const fileName = document.querySelector('#carImageInput + .file-upload-label .file-name');
+            if (fileName) {
+                fileName.textContent = 'Válasszon képet...';
+            }
+            
+            // Hide preview
+            const imagePreview = document.getElementById('imagePreview');
+            imagePreview.innerHTML = '';
+            imagePreview.classList.remove('show');
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('addCarModal');
+            if (event.target === modal) {
+                closeAddCarModal();
+            }
+        });
+    </script>
+</th:block>
+</body>
+</html>
