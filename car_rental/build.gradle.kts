@@ -40,6 +40,7 @@ dependencies {
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("io.mockk:mockk:1.13.8")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testRuntimeOnly("com.h2database:h2")
 }
