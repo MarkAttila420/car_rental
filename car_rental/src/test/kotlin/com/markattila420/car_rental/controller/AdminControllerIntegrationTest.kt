@@ -12,8 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockMultipartFile
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -43,6 +47,12 @@ class AdminControllerIntegrationTest {
     @Autowired
     private lateinit var bookingRepository: BookingRepository
 
+    @Value("\${admin.username}")
+    private lateinit var adminUsername: String
+
+    @Value("\${admin.password}")
+    private lateinit var adminPassword: String
+
     private lateinit var testCar: Car
     private lateinit var testBooking: Booking
 
@@ -50,17 +60,16 @@ class AdminControllerIntegrationTest {
     fun setup() {
         mockMvc = MockMvcBuilders
             .webAppContextSetup(webApplicationContext)
+            .apply<DefaultMockMvcBuilder>(springSecurity())
             .build()
-        // Clean up repositories
         bookingRepository.deleteAll()
         carRepository.deleteAll()
 
-        // Create test car
         testCar = carRepository.save(
             Car(
                 brand = "Toyota",
                 model = "Camry",
-                dailyRate = BigDecimal("50.00"),
+                dailyRate = BigDecimal("500"),
                 imagePath = "/images/test-car.jpg",
                 active = true,
                 createdAt = LocalDateTime.now(),
@@ -68,7 +77,6 @@ class AdminControllerIntegrationTest {
             )
         )
 
-        // Create test booking
         testBooking = bookingRepository.save(
             Booking(
                 car = testCar,
@@ -79,7 +87,7 @@ class AdminControllerIntegrationTest {
                 startDate = LocalDate.now().plusDays(1),
                 endDate = LocalDate.now().plusDays(3),
                 numberOfDays = 2,
-                totalAmount = BigDecimal("100.00"),
+                totalAmount = BigDecimal("1000"),
                 bookingStatus = BookingStatus.PENDING,
                 createdAt = LocalDateTime.now()
             )
@@ -93,8 +101,24 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
+    fun `should allow access to admin page with correct credentials`() {
+        mockMvc.perform(get("/admin")
+            .with(httpBasic(adminUsername, adminPassword)))
+            .andExpect(status().isOk)
+            .andExpect(view().name("admin"))
+    }
+
+    @Test
+    fun `should deny access to admin page with incorrect credentials`() {
+        mockMvc.perform(get("/admin")
+            .with(httpBasic("wronguser", "wrongpassword")))
+            .andExpect(status().isUnauthorized)
+    }
+
+    @Test
     fun `should load admin page with bookings and cars`() {
-        mockMvc.perform(get("/admin"))
+        mockMvc.perform(get("/admin")
+            .with(httpBasic(adminUsername, adminPassword)))
             .andExpect(status().isOk)
             .andExpect(view().name("admin"))
             .andExpect(model().attributeExists("bookings"))
@@ -107,12 +131,12 @@ class AdminControllerIntegrationTest {
         mockMvc.perform(
             post("/admin/booking/{id}/status", testBooking.id)
                 .param("status", BookingStatus.CONFIRMED.name)
+                .with(httpBasic(adminUsername, adminPassword))
         )
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/admin"))
             .andExpect(flash().attributeExists("message"))
 
-        // Verify the booking status was updated
         val updatedBooking = bookingRepository.findById(testBooking.id!!).orElseThrow()
         assert(updatedBooking.bookingStatus == BookingStatus.CONFIRMED)
     }
@@ -122,6 +146,7 @@ class AdminControllerIntegrationTest {
         mockMvc.perform(
             post("/admin/booking/{id}/status", 99999L)
                 .param("status", BookingStatus.CONFIRMED.name)
+                .with(httpBasic(adminUsername, adminPassword))
         )
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/admin"))
@@ -130,12 +155,12 @@ class AdminControllerIntegrationTest {
 
     @Test
     fun `should delete booking successfully`() {
-        mockMvc.perform(post("/admin/booking/{id}/delete", testBooking.id))
+        mockMvc.perform(post("/admin/booking/{id}/delete", testBooking.id)
+            .with(httpBasic(adminUsername, adminPassword)))
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/admin"))
             .andExpect(flash().attributeExists("message"))
 
-        // Verify the booking was deleted
         assert(!bookingRepository.existsById(testBooking.id!!))
     }
 
@@ -145,8 +170,9 @@ class AdminControllerIntegrationTest {
             multipart("/admin/car/{id}/update", testCar.id)
                 .param("brand", "Honda")
                 .param("model", "Accord")
-                .param("dailyRate", "75.00")
+                .param("dailyRate", "1000")
                 .param("active", "true")
+                .with(httpBasic(adminUsername, adminPassword))
                 .with { request ->
                     request.method = "POST"
                     request
@@ -156,11 +182,10 @@ class AdminControllerIntegrationTest {
             .andExpect(redirectedUrl("/admin"))
             .andExpect(flash().attributeExists("message"))
 
-        // Verify the car was updated
         val updatedCar = carRepository.findById(testCar.id!!).orElseThrow()
         assert(updatedCar.brand == "Honda")
         assert(updatedCar.model == "Accord")
-        assert(updatedCar.dailyRate == BigDecimal("75.00"))
+        assert(updatedCar.dailyRate == BigDecimal("1000"))
     }
 
     @Test
@@ -171,6 +196,7 @@ class AdminControllerIntegrationTest {
                 .param("model", testCar.model)
                 .param("dailyRate", testCar.dailyRate.toString())
                 .param("active", "false")
+                .with(httpBasic(adminUsername, adminPassword))
                 .with { request ->
                     request.method = "POST"
                     request
@@ -180,11 +206,9 @@ class AdminControllerIntegrationTest {
             .andExpect(redirectedUrl("/admin"))
             .andExpect(flash().attributeExists("message"))
 
-        // Verify the booking was cancelled
         val updatedBooking = bookingRepository.findById(testBooking.id!!).orElseThrow()
         assert(updatedBooking.bookingStatus == BookingStatus.CANCELLED)
 
-        // Verify the car was deactivated
         val updatedCar = carRepository.findById(testCar.id!!).orElseThrow()
         assert(!updatedCar.active)
     }
@@ -203,14 +227,14 @@ class AdminControllerIntegrationTest {
                 .file(imageFile)
                 .param("brand", "Ford")
                 .param("model", "Mustang")
-                .param("dailyRate", "120.00")
+                .param("dailyRate", "800")
                 .param("active", "true")
+                .with(httpBasic(adminUsername, adminPassword))
         )
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/admin"))
             .andExpect(flash().attributeExists("message"))
 
-        // Verify the car was added
         val cars = carRepository.findAll()
         assert(cars.any { it.brand == "Ford" && it.model == "Mustang" })
     }
@@ -227,8 +251,9 @@ class AdminControllerIntegrationTest {
                 .file(emptyFile)
                 .param("brand", "Ford")
                 .param("model", "Mustang")
-                .param("dailyRate", "120.00")
+                .param("dailyRate", "800")
                 .param("active", "true")
+                .with(httpBasic(adminUsername, adminPassword))
         )
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/admin"))
@@ -251,6 +276,7 @@ class AdminControllerIntegrationTest {
                 .param("model", testCar.model)
                 .param("dailyRate", testCar.dailyRate.toString())
                 .param("active", "true")
+                .with(httpBasic(adminUsername, adminPassword))
                 .with { request ->
                     request.method = "POST"
                     request

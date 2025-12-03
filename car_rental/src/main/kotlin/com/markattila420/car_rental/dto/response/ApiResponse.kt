@@ -1,4 +1,4 @@
-package com.markattila420.car_rental.dto
+package com.markattila420.car_rental.dto.response
 
 data class ApiResponse<T>(
     val success: Boolean,

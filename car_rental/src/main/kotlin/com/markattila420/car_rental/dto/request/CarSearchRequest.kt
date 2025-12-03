@@ -1,4 +1,4 @@
-package com.markattila420.car_rental.dto
+package com.markattila420.car_rental.dto.request
 
 import java.time.LocalDate
 

@@ -47,16 +47,14 @@ class PublicControllerIntegrationTest {
             .webAppContextSetup(webApplicationContext)
             .build()
 
-        // Clean up repositories
         bookingRepository.deleteAll()
         carRepository.deleteAll()
 
-        // Create test cars
         activeCar1 = carRepository.save(
             Car(
                 brand = "Toyota",
                 model = "Camry",
-                dailyRate = BigDecimal("50.00"),
+                dailyRate = BigDecimal("500"),
                 imagePath = "/images/camry.jpg",
                 active = true,
                 createdAt = LocalDateTime.now(),
@@ -68,7 +66,7 @@ class PublicControllerIntegrationTest {
             Car(
                 brand = "Honda",
                 model = "Accord",
-                dailyRate = BigDecimal("60.00"),
+                dailyRate = BigDecimal("600"),
                 imagePath = "/images/accord.jpg",
                 active = true,
                 createdAt = LocalDateTime.now(),
@@ -80,7 +78,7 @@ class PublicControllerIntegrationTest {
             Car(
                 brand = "Ford",
                 model = "Mustang",
-                dailyRate = BigDecimal("100.00"),
+                dailyRate = BigDecimal("1000"),
                 imagePath = "/images/mustang.jpg",
                 active = false,
                 createdAt = LocalDateTime.now(),
@@ -110,7 +108,6 @@ class PublicControllerIntegrationTest {
         val startDate = LocalDate.now().plusDays(1)
         val endDate = LocalDate.now().plusDays(3)
 
-        // Create a booking for activeCar1
         bookingRepository.save(
             Booking(
                 car = activeCar1,
@@ -121,7 +118,7 @@ class PublicControllerIntegrationTest {
                 startDate = startDate,
                 endDate = endDate,
                 numberOfDays = 3,
-                totalAmount = BigDecimal("150.00"),
+                totalAmount = BigDecimal("1500.00"),
                 bookingStatus = BookingStatus.PENDING,
                 createdAt = LocalDateTime.now()
             )
@@ -196,7 +193,6 @@ class PublicControllerIntegrationTest {
             .andExpect(redirectedUrl("/"))
             .andExpect(flash().attributeExists("successMessage"))
 
-        // Verify booking was created
         val bookings = bookingRepository.findAll()
         assert(bookings.size == 1)
         assert(bookings[0].customerName == "John Doe")
@@ -208,7 +204,6 @@ class PublicControllerIntegrationTest {
         val startDate = LocalDate.now().plusDays(1)
         val endDate = LocalDate.now().plusDays(3)
 
-        // Create existing booking
         bookingRepository.save(
             Booking(
                 car = activeCar1,
@@ -219,13 +214,12 @@ class PublicControllerIntegrationTest {
                 startDate = startDate,
                 endDate = endDate,
                 numberOfDays = 3,
-                totalAmount = BigDecimal("150.00"),
+                totalAmount = BigDecimal("1500"),
                 bookingStatus = BookingStatus.PENDING,
                 createdAt = LocalDateTime.now()
             )
         )
 
-        // Try to create overlapping booking
         mockMvc.perform(
             post("/booking")
                 .param("carId", activeCar1.id.toString())
@@ -280,7 +274,6 @@ class PublicControllerIntegrationTest {
         val startDate = LocalDate.now().plusDays(1)
         val endDate = LocalDate.now().plusDays(3)
 
-        // Create booking
         bookingRepository.save(
             Booking(
                 car = activeCar1,
@@ -291,7 +284,7 @@ class PublicControllerIntegrationTest {
                 startDate = startDate,
                 endDate = endDate,
                 numberOfDays = 3,
-                totalAmount = BigDecimal("150.00"),
+                totalAmount = BigDecimal("1500"),
                 bookingStatus = BookingStatus.PENDING,
                 createdAt = LocalDateTime.now()
             )
@@ -351,7 +344,6 @@ class PublicControllerIntegrationTest {
         val startDate = LocalDate.now().plusDays(1)
         val endDate = LocalDate.now().plusDays(3)
 
-        // Create booking
         bookingRepository.save(
             Booking(
                 car = activeCar1,
@@ -362,7 +354,7 @@ class PublicControllerIntegrationTest {
                 startDate = startDate,
                 endDate = endDate,
                 numberOfDays = 3,
-                totalAmount = BigDecimal("150.00"),
+                totalAmount = BigDecimal("1500"),
                 bookingStatus = BookingStatus.PENDING,
                 createdAt = LocalDateTime.now()
             )
@@ -397,7 +389,7 @@ class PublicControllerIntegrationTest {
     @Test
     fun `should calculate total amount correctly when creating booking`() {
         val startDate = LocalDate.now().plusDays(1)
-        val endDate = LocalDate.now().plusDays(5) // 5 days
+        val endDate = LocalDate.now().plusDays(5)
 
         mockMvc.perform(
             post("/booking")
@@ -412,10 +404,9 @@ class PublicControllerIntegrationTest {
             .andExpect(status().is3xxRedirection)
             .andExpect(redirectedUrl("/"))
 
-        // Verify booking calculation
         val bookings = bookingRepository.findAll()
         assert(bookings.size == 1)
         assert(bookings[0].numberOfDays == 5)
-        assert(bookings[0].totalAmount == BigDecimal("250.00")) // 50 * 5
+        assert(bookings[0].totalAmount == BigDecimal("2500"))
     }
 }

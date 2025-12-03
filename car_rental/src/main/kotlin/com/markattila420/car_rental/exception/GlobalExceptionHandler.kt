@@ -1,6 +1,6 @@
 package com.markattila420.car_rental.exception
 
-import com.markattila420.car_rental.dto.ErrorResponse
+import com.markattila420.car_rental.dto.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

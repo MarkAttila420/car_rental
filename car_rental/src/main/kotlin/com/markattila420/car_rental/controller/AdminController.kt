@@ -74,22 +74,19 @@ class AdminController(
     ): String {
         val car = carRepository.findById(id).orElse(null)
         if (car != null) {
-            // Check if car is being deactivated
             val wasActive = car.active
             val isBeingDeactivated = wasActive && !active
             
-            // Update image if provided
             var newImagePath = car.imagePath
             if (image != null && !image.isEmpty) {
                 try {
-                    newImagePath = carService.updateCarImage(id, image)
+                    newImagePath = carService.getNewImagePath(image)
                 } catch (e: Exception) {
                     redirectAttributes.addFlashAttribute("error", "Error updating image: ${e.message}")
                     return "redirect:/admin"
                 }
             }
             
-            // Update the car
             val updatedCar = car.copy(
                 brand = brand,
                 model = model,
@@ -100,7 +97,6 @@ class AdminController(
             )
             carRepository.save(updatedCar)
             
-            // If car is being deactivated, cancel all active bookings
             if (isBeingDeactivated) {
                 val activeBookings = bookingRepository.findActiveBookingsByCarId(id)
                 val cancelledCount = activeBookings.size

@@ -1,6 +1,9 @@
 package com.markattila420.car_rental.controller
 
 import com.markattila420.car_rental.dto.*
+import com.markattila420.car_rental.dto.response.ApiResponse
+import com.markattila420.car_rental.dto.response.BookingResponse
+import com.markattila420.car_rental.dto.request.CreateBookingRequest
 import com.markattila420.car_rental.service.BookingService
 import com.markattila420.car_rental.service.CarService
 import jakarta.validation.Valid
@@ -39,7 +42,6 @@ class CarRentalApiController(
     fun createBooking(
         @Valid @RequestBody request: CreateBookingRequest
     ): ResponseEntity<ApiResponse<BookingResponse>> {
-        // Validate date range
         if (request.endDate.isBefore(request.startDate)) {
             throw IllegalArgumentException("End date must be after or equal to start date")
         }

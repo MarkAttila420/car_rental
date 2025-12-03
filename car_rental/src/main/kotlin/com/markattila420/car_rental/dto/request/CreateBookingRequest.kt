@@ -1,4 +1,4 @@
-package com.markattila420.car_rental.dto
+package com.markattila420.car_rental.dto.request
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.validation.constraints.*
@@ -14,7 +14,7 @@ data class CreateBookingRequest(
     val customerName: String,
     
     @field:NotBlank(message = "Customer email is required")
-    @field:Email(message = "Invalid email format")
+    @field:Pattern(regexp = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Invalid email format")
     val customerEmail: String,
     
     @field:NotBlank(message = "Customer address is required")

@@ -1,8 +1,9 @@
-package com.markattila420.car_rental.dto
+package com.markattila420.car_rental.dto.response
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.markattila420.car_rental.entity.Booking
 import com.markattila420.car_rental.entity.BookingStatus
+import com.markattila420.car_rental.dto.CarDto
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime

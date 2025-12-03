@@ -59,12 +59,11 @@ class CarService(
         return carRepository.save(car)
     }
     
-    fun updateCarImage(carId: Long, imageFile: MultipartFile): String {
+    fun getNewImagePath(imageFile: MultipartFile): String {
         if (imageFile.isEmpty) {
             throw IllegalArgumentException("File is empty")
         }
         
-        // Save the new image
         return saveImage(imageFile)
     }
     
@@ -73,28 +72,22 @@ class CarService(
             throw IllegalArgumentException("File is empty")
         }
         
-        // Generate unique filename
         val originalFilename = file.originalFilename ?: "image"
         val extension = originalFilename.substringAfterLast(".", "jpg")
         val uniqueFilename = "${UUID.randomUUID()}.${extension}"
         
-        // Save to both locations to ensure it works in development and production
-        // 1. Save to source directory (for development, in case running from IDE)
         val sourceDir = Paths.get("src/main/resources/static/images")
         if (!Files.exists(sourceDir)) {
             Files.createDirectories(sourceDir)
         }
         Files.copy(file.inputStream, sourceDir.resolve(uniqueFilename), StandardCopyOption.REPLACE_EXISTING)
         
-        // 2. Save to build directory (for running application)
         val buildDir = Paths.get("build/resources/main/static/images")
         if (!Files.exists(buildDir)) {
             Files.createDirectories(buildDir)
         }
-        // Reset the input stream before copying again
         Files.copy(file.bytes.inputStream(), buildDir.resolve(uniqueFilename), StandardCopyOption.REPLACE_EXISTING)
         
-        // Return the path that will be used in the HTML (relative to static folder)
         return "/images/$uniqueFilename"
     }
 }
