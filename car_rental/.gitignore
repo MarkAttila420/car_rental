@@ -38,3 +38,7 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Uploaded Images ###
+src/main/resources/static/images/
+build/resources/main/static/images/

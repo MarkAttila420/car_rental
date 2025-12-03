@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Home - Elérhető autók</title>
+    <link rel="stylesheet" th:href="@{/css/dateRangePicker.css}">
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container">
+        <div class="filter-bar">
+            <form method="get" action="/" id="searchForm" class="search-form">
+                <div style="position: relative; display: inline-block;">
+                    <div class="date-picker-trigger" id="dateRangeTrigger">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                            <path d="M9 7a1 1 0 0 1 1-1h5v2h-5a1 1 0 0 1-1-1M1 9h4a1 1 0 0 1 0 2H1z"/>
+                            <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                        </svg>
+                        <span id="dateRangeDisplay">Foglalás időtartama</span>
+                    </div>
+                    
+                        <div id="dateRangePicker" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 4px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button type="button" id="prevMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8249;
+                                </button>
+                                <div style="display: flex; gap: 20px; flex: 1;">
+                                    <div id="calendar1"></div>
+                                    <div id="calendar2"></div>
+                                </div>
+                                <button type="button" id="nextMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8250;
+                                </button>
+                            </div>
+                            <div class="date-picker-footer">
+                                <button type="button" id="confirmDateRange" class="date-picker-confirm" disabled>Keresés</button>
+                            </div>
+                        </div>                    <input type="hidden" 
+                           id="startDate" 
+                           name="startDate" 
+                           th:value="${startDate != null ? #temporals.format(startDate, 'yyyy-MM-dd') : ''}">
+                    <input type="hidden" 
+                           id="endDate" 
+                           name="endDate" 
+                           th:value="${endDate != null ? #temporals.format(endDate, 'yyyy-MM-dd') : ''}">
+                </div>
+                <a href="/" class="clear-filters-link">Szűrők törlése</a>
+            </form>
+        </div>
+        <div th:if="${!#lists.isEmpty(cars)}" class="car-grid">
+            <div th:each="car : ${cars}" class="car-card">
+                <div class="car-image-container">
+                    <div th:if="${car.imagePath != null and !#strings.isEmpty(car.imagePath)}">
+                        <img th:src="@{${car.imagePath}}" 
+                             th:alt="${car.brand + ' ' + car.model}"
+                             class="car-image">
+                    </div>
+                    <div th:if="${car.imagePath == null or #strings.isEmpty(car.imagePath)}" class="no-image">
+                        <p>[Nincs kép]</p>
+                    </div>
+                </div>
+                <div class="car-info">
+                    <h4 class="car-name" th:text="${car.brand + ' ' + car.model}">Car Name</h4>
+                    <div class="car-footer">
+                        <div class="car-price">
+                            <span th:text="${#numbers.formatDecimal(car.dailyRate,0,0)}">0</span> Ft/nap
+                        </div>
+                        <a th:href="@{/booking/{id}(id=${car.id})}" 
+                           class="book-now-button book-now-link" 
+                           th:data-car-id="${car.id}">Foglalás</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="extra-css">
+    <style>
+        /* Filter Bar Styles */
+        .filter-bar {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+        
+        .search-form {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .search-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .search-button:hover {
+            background: #1976D2;
+        }
+        
+        .clear-filters-link {
+            color: #666;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .clear-filters-link:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .results-header {
+            margin-bottom: 20px;
+        }
+        
+        .results-count {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        
+        .results-count span {
+            color: #2196F3;
+        }
+        
+        /* Car Grid Styles */
+        .car-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+        
+        .car-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .car-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .car-image-container {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .car-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .no-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .car-info {
+            padding: 16px;
+        }
+        
+        .car-name {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .car-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .car-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .book-now-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .book-now-button:hover {
+            background: #1976D2;
+        }
+    </style>
+</th:block>
+
+<th:block layout:fragment="extra-js">
+    <script th:src="@{/js/dateRangePicker.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the date range picker
+            const picker = new DateRangePicker({
+                triggerElementId: 'dateRangeTrigger',
+                startDateInputId: 'startDate',
+                endDateInputId: 'endDate',
+                displayElementId: 'dateRangeDisplay',
+                pickerContainerId: 'dateRangePicker',
+                calendar1Id: 'calendar1',
+                calendar2Id: 'calendar2',
+                prevMonthButtonId: 'prevMonth',
+                nextMonthButtonId: 'nextMonth',
+                confirmButtonId: 'confirmDateRange',
+                defaultDisplayText: 'Foglalás időtartama',
+                onConfirm: function(startDate, endDate) {
+                    // Update booking links and submit form
+                    updateBookingLinks();
+                    document.getElementById('searchForm').submit();
+                }
+            });
+            
+            // Update booking links with date range
+            function updateBookingLinks() {
+                const startInput = document.getElementById('startDate');
+                const endInput = document.getElementById('endDate');
+                const bookingLinks = document.querySelectorAll('.book-now-link');
+                
+                bookingLinks.forEach(link => {
+                    const baseUrl = link.getAttribute('href').split('?')[0];
+                    let url = baseUrl;
+                    
+                    if (startInput.value && endInput.value) {
+                        url += '?startDate=' + encodeURIComponent(startInput.value) + 
+                               '&endDate=' + encodeURIComponent(endInput.value);
+                    }
+                    
+                    link.setAttribute('href', url);
+                });
+            }
+            
+            // Update links whenever dates change
+            const observer = new MutationObserver(updateBookingLinks);
+            observer.observe(document.getElementById('startDate'), { attributes: true });
+            observer.observe(document.getElementById('endDate'), { attributes: true });
+            
+            // Initial update
+            updateBookingLinks();
+        });
+    </script>
+</th:block>
+</body>
+</html>

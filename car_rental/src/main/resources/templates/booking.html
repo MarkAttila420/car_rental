@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Foglalás</title>
+    <link rel="stylesheet" th:href="@{/css/dateRangePicker.css}">
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mt-4">
+        <div class="car-image-container mb-4" th:if="${car.imagePath != null}">
+            <img th:src="@{${car.imagePath}}" th:alt="${car.brand + ' ' + car.model}" class="car-booking-image">
+        </div>
+        
+        <div class="booking-form-container">
+            <form method="post" action="/booking">
+                <input type="hidden" name="carId" th:value="${carId}">
+                
+                <div class="form-group mb-3">
+                    <label class="form-label">Foglalás időtartama:</label>
+                    <div style="position: relative; display: inline-block;">
+                        <div class="date-picker-trigger" id="dateRangeTrigger">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
+                                <path d="M9 7a1 1 0 0 1 1-1h5v2h-5a1 1 0 0 1-1-1M1 9h4a1 1 0 0 1 0 2H1z"/>
+                                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                            </svg>
+                            <span id="dateRangeDisplay">Válassz dátumot</span>
+                        </div>
+                        
+                        <div id="dateRangePicker" style="display: none; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 4px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button type="button" id="prevMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8249;
+                                </button>
+                                <div style="display: flex; gap: 20px; flex: 1;">
+                                    <div id="calendar1"></div>
+                                    <div id="calendar2"></div>
+                                </div>
+                                <button type="button" id="nextMonth" style="background: none; border: none; cursor: pointer; padding: 8px; font-size: 24px; line-height: 1; align-self: flex-start;">
+                                    &#8250;
+                                </button>
+                            </div>
+                            <div class="date-picker-footer">
+                                <button type="button" id="confirmDateRange" class="date-picker-confirm" disabled>Dátumok kiválasztása</button>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" 
+                               id="startDate" 
+                               name="startDate" 
+                               th:value="${startDate != null ? #temporals.format(startDate, 'yyyy-MM-dd') : ''}" 
+                               required>
+                        <input type="hidden" 
+                               id="endDate" 
+                               name="endDate" 
+                               th:value="${endDate != null ? #temporals.format(endDate, 'yyyy-MM-dd') : ''}" 
+                               required>
+                    </div>
+                    <div id="availabilityError" class="error-message" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="totalPrice" class="form-label">Fizetendő összeg:</label>
+                    <input type="text" id="totalPrice" class="form-control" disabled readonly>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="name" class="form-label">Név:</label>
+                    <input type="text" id="name" name="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="email" class="form-label">Email cím:</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="address" class="form-label">Cím:</label>
+                    <input type="text" id="address" name="address" class="form-control" required>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="phoneNumber" class="form-label">Telefonszám:</label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control" required>
+                </div>
+                
+                <div class="form-actions mt-4">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back();">Mégse</button>
+                    <button type="submit" class="btn btn-primary">Foglalás</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="extra-css">
+    <style>
+        .car-image-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .car-booking-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            object-fit: cover;
+        }
+        
+        .booking-form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1976D2;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 14px;
+            border-left: 4px solid #c62828;
+        }
+    </style>
+</th:block>
+
+<th:block layout:fragment="extra-js">
+    <script th:src="@{/js/dateRangePicker.js}"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get initial dates from server (converted to ISO string format)
+            const initialStartDate = /*[[${startDate != null ? #temporals.format(startDate, 'yyyy-MM-dd') : null}]]*/ null;
+            const initialEndDate = /*[[${endDate != null ? #temporals.format(endDate, 'yyyy-MM-dd') : null}]]*/ null;
+            const dailyRate = /*[[${car.dailyRate}]]*/ 0;
+            const carId = /*[[${carId}]]*/ 0;
+            
+            // Fetch unavailable dates for this car
+            fetch(`/api/cars/${carId}/unavailable-dates`)
+                .then(response => response.json())
+                .then(data => {
+                    // Initialize the date range picker with disabled dates
+                    const picker = new DateRangePicker({
+                        triggerElementId: 'dateRangeTrigger',
+                        startDateInputId: 'startDate',
+                        endDateInputId: 'endDate',
+                        displayElementId: 'dateRangeDisplay',
+                        pickerContainerId: 'dateRangePicker',
+                        calendar1Id: 'calendar1',
+                        calendar2Id: 'calendar2',
+                        prevMonthButtonId: 'prevMonth',
+                        nextMonthButtonId: 'nextMonth',
+                        confirmButtonId: 'confirmDateRange',
+                        defaultDisplayText: 'Válassz dátumot',
+                        disabledDates: data.unavailableDates || [],
+                        onConfirm: function(startDate, endDate) {
+                            // Check availability when dates are confirmed
+                            checkAvailability();
+                        }
+                    });
+                    
+                    // Store picker reference for later use
+                    window.dateRangePicker = picker;
+                    
+                    // Update price on initial load if dates are already set
+                    if (document.getElementById('startDate').value && document.getElementById('endDate').value) {
+                        checkAvailability();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching unavailable dates:', error);
+                    // Initialize without disabled dates if fetch fails
+                    const picker = new DateRangePicker({
+                        triggerElementId: 'dateRangeTrigger',
+                        startDateInputId: 'startDate',
+                        endDateInputId: 'endDate',
+                        displayElementId: 'dateRangeDisplay',
+                        pickerContainerId: 'dateRangePicker',
+                        calendar1Id: 'calendar1',
+                        calendar2Id: 'calendar2',
+                        prevMonthButtonId: 'prevMonth',
+                        nextMonthButtonId: 'nextMonth',
+                        confirmButtonId: 'confirmDateRange',
+                        defaultDisplayText: 'Válassz dátumot',
+                        disabledDates: [],
+                        onConfirm: function(startDate, endDate) {
+                            // Check availability when dates are confirmed
+                            checkAvailability();
+                        }
+                    });
+                    
+                    window.dateRangePicker = picker;
+                });
+            
+            // Function to calculate and update total price
+            function updateTotalPrice() {
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+                const totalPriceInput = document.getElementById('totalPrice');
+                
+                if (startDateInput.value && endDateInput.value) {
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(endDateInput.value);
+                    
+                    // Calculate the number of days
+                    const timeDiff = endDate.getTime() - startDate.getTime();
+                    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end days
+                    
+                    if (days > 0) {
+                        const totalPrice = days * dailyRate;
+                        totalPriceInput.value = new Intl.NumberFormat('hu-HU', {
+                            style: 'currency',
+                            currency: 'HUF',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(totalPrice);
+                    } else {
+                        totalPriceInput.value = '';
+                    }
+                } else {
+                    totalPriceInput.value = '';
+                }
+            }
+            
+            // Function to check car availability
+            function checkAvailability() {
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+                const errorDiv = document.getElementById('availabilityError');
+                
+                if (startDateInput.value && endDateInput.value) {
+                    // Make API call to check availability
+                    fetch(`/api/cars/${carId}/availability?startDate=${startDateInput.value}&endDate=${endDateInput.value}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.available) {
+                                errorDiv.style.display = 'none';
+                                updateTotalPrice();
+                            } else {
+                                errorDiv.textContent = 'Ez az autó nem elérhető a kiválasztott időszakban.';
+                                errorDiv.style.display = 'block';
+                                document.getElementById('totalPrice').value = '';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking availability:', error);
+                            // On error, still allow booking (optimistic approach)
+                            errorDiv.style.display = 'none';
+                            updateTotalPrice();
+                        });
+                }
+            }
+        });
+    </script>
+</th:block>
+</body>
+</html>

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres-db:
     image: postgres:15-alpine
-    container_name: carrental
+    container_name: carrental-db
     environment:
       - POSTGRES_DB=carrental_db
       - POSTGRES_USER=admin
@@ -13,6 +13,29 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: always
+    networks:
+      - car-rental-network
+
+  app:
+    build:
+      context: ./car_rental
+      dockerfile: Dockerfile
+    container_name: carrental-app
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/carrental_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=Password1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-db
+    restart: always
+    networks:
+      - car-rental-network
+
+networks:
+  car-rental-network:
+    driver: bridge
 
 volumes:
   db_data:
